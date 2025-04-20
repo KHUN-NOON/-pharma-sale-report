@@ -1,9 +1,7 @@
-import { Item, PrismaClient } from '@/generated/prisma';
 import { Decimal } from '@/generated/prisma/runtime/library';
 import { ServiceResponseType } from '@/types/service.type';
-import { TopTenSaleItemsType } from '@report/types';
-
-const prisma = new PrismaClient();
+import { TopTenSaleItemsChartType, TopTenSaleItemsType } from '@report/types';
+import { prisma } from "@/lib/prisma";
 
 export const getCategoryCount = async (): Promise<ServiceResponseType<{ categoryCount: number }>> => {
     try {
@@ -39,7 +37,7 @@ export const getItemCount = async (): Promise<ServiceResponseType<{ itemCount: n
         return {
             success: false,
             message: error instanceof Error ? error.message : "Unknown Error!",
-            data: null  
+            data: null
         }
     }
 };
@@ -59,7 +57,7 @@ export const getSaleCount = async (): Promise<ServiceResponseType<{ saleCount: n
         return {
             success: false,
             message: error instanceof Error ? error.message : "Unknown Error!",
-            data: null  
+            data: null
         }
     }
 }
@@ -83,7 +81,31 @@ export const getTotalSaleAmount = async (): Promise<ServiceResponseType<{ totalS
         return {
             success: false,
             message: error instanceof Error ? error.message : "Unknown Error!",
-            data: null  
+            data: null
+        }
+    }
+}
+
+export const totalItemSold = async (): Promise<ServiceResponseType<{ totalItemSold: number }>> => {
+    try {
+        const res = await prisma.saleItem.aggregate({
+            _sum: {
+                quantity: true
+            }
+        });
+
+        return {
+            success: true,
+            message: "Success",
+            data: {
+                totalItemSold: res._sum.quantity || 0
+            }
+        }
+    } catch (error) {
+        return {
+            success: false,
+            message: error instanceof Error ? error.message : "Unknown Error!",
+            data: null
         }
     }
 }
@@ -134,7 +156,32 @@ export const topTenSaleItems = async (): Promise<ServiceResponseType<TopTenSaleI
         return {
             success: false,
             message: error instanceof Error ? error.message : "Unknown Error!",
-            data: null  
+            data: null
+        }
+    }
+}
+
+export const topTenSaleItemsChart = async (): Promise<ServiceResponseType<TopTenSaleItemsChartType>> => {
+    try {
+        const topItems = await topTenSaleItems();
+
+        const formattedData = topItems.data?.map(i => {
+            return {
+                name: i.itemDetails.name,
+                value: i.totalAmount
+            }
+        });
+
+        return {
+            success: true,
+            message: "Success",
+            data: formattedData ?? []
+        }
+    } catch (error) {
+        return {
+            success: false,
+            message: error instanceof Error ? error.message : "Unknown Error!",
+            data: null
         }
     }
 }
